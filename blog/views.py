@@ -1,12 +1,16 @@
 from django.views import generic
 from django.shortcuts import redirect, get_object_or_404
 from django.urls import reverse
+from rest_framework import viewsets
 from .models import Post, Comment
 from .forms import CommentForm
+from .serializers import PostSerializer, CommentSerializer
+
 
 class PostList(generic.ListView):
     queryset = Post.objects.filter(status=1).order_by('-created_on')
     template_name = 'index.html'
+
 
 class PostDetail(generic.DetailView):
     model = Post
@@ -17,6 +21,17 @@ class PostDetail(generic.DetailView):
         context['comments'] = self.object.comments.all()
         context['form'] = CommentForm()
         return context
+
+
+# REST API ViewSets
+class PostViewSet(viewsets.ModelViewSet):
+    queryset = Post.objects.all()
+    serializer_class = PostSerializer
+
+
+class CommentViewSet(viewsets.ModelViewSet):
+    queryset = Comment.objects.all()
+    serializer_class = CommentSerializer
 
 
 def add_comment(request, slug):
