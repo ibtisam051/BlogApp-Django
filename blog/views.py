@@ -1,9 +1,12 @@
 from django.views import generic
-from django.shortcuts import redirect, get_object_or_404
+from django.shortcuts import redirect, get_object_or_404, render  # Added render
 from django.urls import reverse
 from rest_framework import viewsets
+from django.contrib.auth import login, authenticate, logout
+from django.contrib import messages
+from django.contrib.auth.forms import AuthenticationForm
 from .models import Post, Comment
-from .forms import CommentForm
+from .forms import CommentForm, NewUserForm  # Import both forms
 from .serializers import PostSerializer, CommentSerializer
 
 
@@ -44,9 +47,9 @@ def add_comment(request, slug):
             comment = form.save(commit=False)
             comment.post = post
             comment.save()
-            return redirect('post_detail', slug=slug)
+            return redirect('blog:post_detail', slug=slug)
     
-    return redirect('post_detail', slug=slug)
+    return redirect('blog:post_detail', slug=slug)
 
 
 def delete_comment(request, pk):
@@ -57,4 +60,41 @@ def delete_comment(request, pk):
     if request.method == 'POST':
         comment.delete()
     
-    return redirect('post_detail', slug=post_slug)
+    return redirect('blog:post_detail', slug=post_slug)
+
+def register_request(request):
+    if request.method == "POST":
+        form = NewUserForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            login(request, user)
+            messages.success(request, "Registration successful.")
+            return redirect('blog:home')  
+        messages.error(request, "Unsuccessful registration. Invalid information.")
+    form = NewUserForm()
+    return render(request, 'register.html', {"register_form": form})
+
+
+def login_request(request):
+    if request.method == "POST":
+        form = AuthenticationForm(request, data=request.POST)
+        if form.is_valid():
+            username = form.cleaned_data.get('username')
+            password = form.cleaned_data.get('password')
+            user = authenticate(username=username, password=password)
+            if user is not None:
+                login(request, user)
+                messages.info(request, f"You are now logged in as {username}.")
+                return redirect('blog:home')  
+            else:
+                messages.error(request, "Invalid username or password.")
+        else:
+            messages.error(request, "Invalid username or password.")
+    form = AuthenticationForm()
+    return render(request, 'login.html', {"login_form": form})
+
+
+def logout_request(request):
+    logout(request)
+    messages.info(request, "You have successfully logged out.")
+    return redirect('blog:home')  
