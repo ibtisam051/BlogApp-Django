@@ -8,7 +8,8 @@ from django.contrib.auth.forms import AuthenticationForm
 from .models import Post, Comment
 from .forms import CommentForm, NewUserForm  # Import both forms
 from .serializers import PostSerializer, CommentSerializer
-
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
 
 class PostList(generic.ListView):
     queryset = Post.objects.filter(status=1).order_by('-created_on')
@@ -26,7 +27,6 @@ class PostDetail(generic.DetailView):
         return context
 
 
-# REST API ViewSets
 class PostViewSet(viewsets.ModelViewSet):
     queryset = Post.objects.all()
     serializer_class = PostSerializer
@@ -37,8 +37,10 @@ class CommentViewSet(viewsets.ModelViewSet):
     serializer_class = CommentSerializer
 
 
+
+@login_required
 def add_comment(request, slug):
-    """Handle comment submission"""
+    """Handle comment submission - only for logged-in users"""
     post = get_object_or_404(Post, slug=slug)
     
     if request.method == 'POST':
@@ -46,12 +48,15 @@ def add_comment(request, slug):
         if form.is_valid():
             comment = form.save(commit=False)
             comment.post = post
+            comment.author = request.user  
             comment.save()
+            messages.success(request, "Your comment has been added!")
+            return redirect('blog:post_detail', slug=slug)
+        else:
+            messages.error(request, "Error adding comment. Please try again.")
             return redirect('blog:post_detail', slug=slug)
     
     return redirect('blog:post_detail', slug=slug)
-
-
 def delete_comment(request, pk):
     """Handle comment deletion"""
     comment = get_object_or_404(Comment, pk=pk)
