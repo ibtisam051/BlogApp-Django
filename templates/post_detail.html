@@ -1,0 +1,70 @@
+{% extends 'base.html' %} {% block content %}
+
+<div class="container">
+  <div class="row">
+    <div class="col-md-8 card mb-4  mt-3 left  top">
+      <div class="card-body">
+        <h1>{% block title %} {{ object.title }} {% endblock title %}</h1>
+        <p class=" text-muted">{{ post.author }} | {{ post.created_on }}</p>
+        <p class="card-text ">{{ object.content | safe }}</p>
+      </div>
+    </div>
+    {% block sidebar %} {% include 'sidebar.html' %} {% endblock sidebar %}
+  </div>
+
+  <!-- Comments Section -->
+  <div class="row mt-5">
+    <div class="col-md-8">
+      <h3>Comments</h3>
+      <hr>
+
+      <!-- Display existing comments -->
+      {% if comments %}
+        {% for comment in comments %}
+          <div class="card mb-3">
+            <div class="card-body">
+              <h5 class="card-title">{{ comment.author }}</h5>
+              <p class="card-text">{{ comment.content }}</p>
+              <small class="text-muted">{{ comment.created_on }}</small>
+
+              <!-- Delete button -->
+              <form method="POST" action="{% url 'blog:delete_comment' comment.pk %}" style="display:inline;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to delete this comment?')">
+                  Delete
+                </button>
+              </form>
+            </div>
+          </div>
+        {% endfor %}
+      {% else %}
+        <p class="text-muted">No comments yet. Be the first to comment!</p>
+      {% endif %}
+
+      <hr>
+
+      <!-- Add comment form -->
+      <h4 class="mt-4 mb-3">Add a Comment</h4>
+      <form method="POST" action="{% url 'blog:add_comment' object.slug %}">
+        {% csrf_token %}
+        <div class="form-group">
+          {{ form.author }}
+          {% if form.author.errors %}
+            <small class="form-text text-danger">{{ form.author.errors }}</small>
+          {% endif %}
+        </div>
+
+        <div class="form-group mt-2">
+          {{ form.content }}
+          {% if form.content.errors %}
+            <small class="form-text text-danger">{{ form.content.errors }}</small>
+          {% endif %}
+        </div>
+
+        <button type="submit" class="btn btn-primary">Post Comment</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% endblock content %}
