@@ -1,0 +1,47 @@
+services:
+  db:
+    image: postgres:15.2
+    restart: always
+    env_file:
+      - .env
+    ports:
+      - "127.0.0.1:${DATABASE_PORT}:${DATABASE_PORT}"
+    environment:
+      - PGPORT=${DATABASE_PORT}
+      - POSTGRES_DB=${DATABASE_NAME}
+      - POSTGRES_USER=${DATABASE_USER}
+      - POSTGRES_PASSWORD=${DATABASE_PASSWORD}
+    volumes:
+      - postgres_volume:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres -h 127.0.0.1 -p ${DATABASE_PORT}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build: .
+    env_file:
+      - .env
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py collectstatic --noinput &&
+             gunicorn mysite.wsgi:application --bind 0.0.0.0:8000"
+    volumes:
+      - .:/app
+    depends_on:
+      db:
+        condition: service_healthy
+
+  nginx:
+    build: ./nginx
+    volumes:
+      - ./static:/app/static
+      - ./media:/app/media
+    ports:
+      - "81:80"
+    depends_on:
+      - api
+
+volumes:
+  postgres_volume:

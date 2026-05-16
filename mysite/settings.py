@@ -12,9 +12,10 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 
 from pathlib import Path
 import os
+from starlette.config import Config
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-
+CONFIG = Config(BASE_DIR / '.env')
 TEMPLATES_DIRS = os.path.join(BASE_DIR,'templates')
 
 
@@ -22,13 +23,16 @@ TEMPLATES_DIRS = os.path.join(BASE_DIR,'templates')
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-(jlz8zy*_h#pbuao)#^htt*q^f%8000pzg%$p0c(jr@bk#8r5('
-
+#SECRET_KEY = 'django-insecure-(jlz8zy*_h#pbuao)#^htt*q^f%8000pzg%$p0c(jr@bk#8r5('
+SECRET_KEY = CONFIG.get('SECRET_KEY', cast=str, default='')
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = CONFIG.get('PROJECT_DEBUG', cast=bool, default=False)
 
-ALLOWED_HOSTS = []
-
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
+ALLOWED_ORIGINS = ['http://127.0.0.1:81', 'http://localhost:81']
+CSRF_TRUSTED_ORIGINS = ALLOWED_ORIGINS.copy()
+SESSION_COOKIE_SECURE = CONFIG.get('SESSION_COOKIE_SECURE', cast=bool, default=False)
+CSRF_COOKIE_SECURE = CONFIG.get('CSRF_COOKIE_SECURE', cast=bool, default=False)
 
 # Application definition
 
@@ -86,8 +90,12 @@ WSGI_APPLICATION = 'mysite.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'NAME': CONFIG.get('DATABASE_NAME', cast=str, default='postgres'),
+        'USER': CONFIG.get('DATABASE_USER', cast=str, default='postgres'),
+        'PASSWORD': CONFIG.get('DATABASE_PASSWORD', cast=str, default='postgres'),
+        'HOST': CONFIG.get('DATABASE_HOST', cast=str, default='db'),
+        'PORT': CONFIG.get('DATABASE_PORT', cast=int, default=5432),
     }
 }
 
@@ -126,7 +134,10 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
+STATIC_ROOT = BASE_DIR / 'static'
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
 
 # REST Framework Configuration
 REST_FRAMEWORK = {
